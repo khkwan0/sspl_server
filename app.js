@@ -67,6 +67,7 @@ app.get('/players/:teamId', (req, res) => {
 })
 
 app.get('/matches/:season', (req, res) => {
+  console.log('GET /matches/'+req.params.season)
   theDate = new Date()
   theDate.setHours(0,0,0,0)
 
@@ -91,7 +92,7 @@ app.get('/matches/:season', (req, res) => {
 })
 
 app.get('/match/:matchId', (req, res) => {
-  console.log('/match/'+req.params.matchId)
+  console.log('GET /match/'+req.params.matchId)
   games.find({matchId: req.params.matchId})
   .then((matchData) => {
     res.status(200).send(matchData)
@@ -102,7 +103,7 @@ app.get('/match/:matchId', (req, res) => {
 })
 
 app.post('/team/players', (req, res) => {
-  console.log('/team/players')
+  console.log('POST /team/players')
   try {
     teamPlayers = req.body.players
     teamId = req.query.teamId
@@ -198,6 +199,23 @@ io.on('connection', function(socket) {
         console.log(data.data.gameData)
         io.to(data.data.room).emit('rcvmsg', {event: 'gamedata', data: data.data.gameData})
         saveGameData(data.data.gameData)
+      }
+      if (data.event == 'namequery') {
+        console.log('name query: ' + data.data.name)
+        query = {
+          playerName: {
+            $regex: data.data.name,
+            $options: 'i'
+          }
+        }
+        players.find(query)
+        .then((results) => {
+          console.log(results)
+          socket.emit('rcvmsg', {event: 'namequery', names: results})
+        })
+        .catch((err) => {
+          console.log(err)
+        })
       }
       if (data.event == 'submitmatchdata') {
         matchId = data.data.matchid
